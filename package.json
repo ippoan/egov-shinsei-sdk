@@ -4,22 +4,20 @@
   "description": "TypeScript SDK for e-Gov Electronic Application API (電子申請API v2)",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+    ".": "./src/index.ts"
   },
   "files": [
-    "dist",
+    "src",
     "LICENSE",
     "README.md",
     "docs"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "keywords": [
     "e-gov",
     "egov",
@@ -38,7 +36,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "bash scripts/guard-publish.sh"
+    "prepublishOnly": "[ \"$CI\" = 'true' ] || { echo 'ERROR: Direct npm publish is not allowed. Use git tag.'; exit 1; }"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3",
