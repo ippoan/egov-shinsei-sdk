@@ -1,5 +1,5 @@
 {
-  "name": "egov-shinsei-sdk",
+  "name": "@ippoan/egov-shinsei-sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for e-Gov Electronic Application API (電子申請API v2)",
   "license": "MIT",
