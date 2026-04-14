@@ -6,6 +6,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   ci:
     uses: ippoan/ci-workflows/.github/workflows/frontend-ci.yml@main
@@ -16,6 +20,6 @@ jobs:
       has_staging_deploy: false
       typecheck_command: 'npx tsc --noEmit --skipLibCheck'
       test_command: 'npx vitest run --coverage --reporter=default --reporter=json --outputFile.json=coverage/test-results.json'
-      npm_scope: '@ippoan'
       npm_publish_directory: '.'
       npm_publish_name: 'egov-shinsei-sdk'
+    secrets: inherit
