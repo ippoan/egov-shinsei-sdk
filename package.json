@@ -1,0 +1,50 @@
+{
+  "name": "egov-shinsei-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for e-Gov Electronic Application API (電子申請API v2)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "docs"
+  ],
+  "keywords": [
+    "e-gov",
+    "egov",
+    "electronic-application",
+    "shinsei",
+    "japan",
+    "government-api",
+    "digital-agency"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bash scripts/guard-publish.sh"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3",
+    "msw": "^2",
+    "tsup": "^8",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

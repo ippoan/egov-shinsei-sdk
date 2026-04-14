@@ -1,0 +1,9 @@
+# Files that must maintain 100% line coverage.
+# CI (frontend-ci.yml) checks this file and fails if coverage drops.
+
+[files]
+"src/client.ts" = true
+"src/errors.ts" = true
+"src/index.ts" = true
+"src/auth/pkce.ts" = true
+"src/auth/oauth.ts" = true

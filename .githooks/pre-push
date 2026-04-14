@@ -1,0 +1,9 @@
+#!/bin/bash
+# Prevent direct npm publish - must go through CI (git tag → publish-release job)
+# This hook is registered via: git config core.hooksPath .githooks
+
+echo "pre-push hook: checking for npm publish safety..."
+
+# No special checks needed on push itself.
+# The real guard is in package.json prepublishOnly script.
+exit 0
