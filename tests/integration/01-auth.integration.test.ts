@@ -24,8 +24,14 @@ beforeAll(() => {
 })
 
 describe('認証・認可', () => {
-  it.skip('01-1 ユーザー認可 (ブラウザ操作、手動)', () => {
-    // OAuth2 ブラウザログインは手動で実施。token は .env に事前設定済み
+  it('01-1 ユーザー認可 (ブラウザ操作、手動)', () => {
+    // OAuth2 ブラウザログインは手動で実施。JWT の iat からログイン日時を記録
+    const payload = JSON.parse(atob(accessToken.split('.')[1]))
+    const loginAt = new Date(payload.iat * 1000).toISOString()
+    record('01-1', 'ユーザー認可', 'pass', {
+      httpStatus: 302,
+      response: `login at ${loginAt}`,
+    })
   })
 
   it('02-1 アクセストークン取得', async () => {
