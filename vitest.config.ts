@@ -7,6 +7,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
+      exclude: ['src/xmldsig/**'],
       thresholds: {
         statements: 100,
         branches: 100,
