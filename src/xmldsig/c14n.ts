@@ -46,7 +46,7 @@ function findElementById(element: Element, id: string): Element | null {
   if (element.getAttribute('ID') === id || element.getAttribute('Id') === id) {
     return element
   }
-  for (const child of element.children) {
+  for (const child of Array.from(element.children)) {
     const found = findElementById(child, id)
     if (found) return found
   }
@@ -57,7 +57,7 @@ function collectAncestorNamespaces(element: Element): Map<string, string> {
   const ns = new Map<string, string>()
   let node = element.parentElement
   while (node) {
-    for (const attr of node.attributes) {
+    for (const attr of Array.from(node.attributes)) {
       if (attr.name === 'xmlns') {
         if (!ns.has('')) ns.set('', attr.value)
       } else if (attr.name.startsWith('xmlns:')) {
@@ -79,7 +79,7 @@ function serializeNode(node: Element, inheritedNs: Map<string, string>): string 
   const nsDecls = new Map<string, string>()
   const regularAttrs: Array<{ name: string; value: string; nsUri: string }> = []
 
-  for (const attr of node.attributes) {
+  for (const attr of Array.from(node.attributes)) {
     if (attr.name === 'xmlns') {
       nsDecls.set('', attr.value)
     } else if (attr.name.startsWith('xmlns:')) {
@@ -168,7 +168,7 @@ function serializeNode(node: Element, inheritedNs: Map<string, string>): string 
   result += '>'
 
   // 子ノードをシリアライズ（C14N: 空要素も開始+終了タグ）
-  for (const child of node.childNodes) {
+  for (const child of Array.from(node.childNodes)) {
     if (child.nodeType === Node.ELEMENT_NODE) {
       result += serializeNode(child as Element, childNs)
     } else if (child.nodeType === Node.TEXT_NODE) {
