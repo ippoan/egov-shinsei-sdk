@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
+import { drainEvidence, clearBuffer } from './evidence-collector'
 
 const SPEC_PATH = resolve(import.meta.dirname, '../../../spec/final_confirmation_test_requirements.json')
 const OUTPUT_PATH = resolve(import.meta.dirname, '../../../coverage/egov-test-report.json')
@@ -38,6 +39,14 @@ export function record(
     timestamp: new Date().toISOString(),
   })
   writeFileSync(RESULTS_PATH, JSON.stringify(existing, null, 2))
+
+  // エビデンス: バッファに溜まったリクエスト/レスポンスをテスト番号に紐付け
+  drainEvidence(testNo)
+}
+
+/** エビデンスバッファをクリア (テスト開始前に呼ばれる) */
+export function resetEvidence(): void {
+  clearBuffer()
 }
 
 /** 全結果を spec と合成して最終レポートを出力 */
