@@ -37,7 +37,6 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.config.integration.ts",
     "collect-ids": "npx tsx scripts/collect-arrive-ids.ts",
-    "build-prepared": "npx tsx scripts/build-prepared-data.ts",
     "package-evidence": "npx tsx scripts/package-evidence.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "[ \"$CI\" = 'true' ] || { echo 'ERROR: Direct npm publish is not allowed. Use git tag.'; exit 1; }"

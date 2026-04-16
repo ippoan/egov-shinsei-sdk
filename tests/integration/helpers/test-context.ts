@@ -26,3 +26,37 @@ export function loadState<T = string>(key: string): T | undefined {
 export function resetState(): void {
   writeState({})
 }
+
+// --- collect-arrive-ids.ts の出力を読む ---
+const COLLECTED_PATH = resolve(import.meta.dirname, '../../../coverage/.collect-arrive-ids.json')
+
+interface CollectedSubmission {
+  proc_id: string
+  arrive_id: string
+  purpose: string
+}
+
+interface CollectedData {
+  submissions: Record<string, CollectedSubmission>
+  dry?: boolean
+}
+
+/** collect-arrive-ids.ts の出力があるか */
+export function hasCollectedData(): boolean {
+  if (!existsSync(COLLECTED_PATH)) return false
+  try {
+    const data: CollectedData = JSON.parse(readFileSync(COLLECTED_PATH, 'utf-8'))
+    if (data.dry) return false
+    return Object.values(data.submissions).some(s => s.arrive_id && s.arrive_id !== '(dry-run)')
+  } catch { return false }
+}
+
+/** collect-arrive-ids.ts の出力を読む */
+export function loadCollectedData(): CollectedData | undefined {
+  if (!existsSync(COLLECTED_PATH)) return undefined
+  try {
+    const data: CollectedData = JSON.parse(readFileSync(COLLECTED_PATH, 'utf-8'))
+    if (data.dry) return undefined
+    return data
+  } catch { return undefined }
+}

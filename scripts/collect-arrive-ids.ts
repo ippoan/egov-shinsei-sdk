@@ -116,8 +116,10 @@ for (const { testNo, procId, purpose } of submissions) {
     console.log(`  arrive_id: ${arriveId}`)
     results[testNo] = { proc_id: procId, arrive_id: arriveId, purpose }
   } catch (err: any) {
-    console.error(`  ERROR: ${err.message}`)
-    results[testNo] = { proc_id: procId, arrive_id: '', purpose, error: err.message }
+    const errMsg = err.message || JSON.stringify(err)
+    console.error(`  ERROR: ${errMsg}`)
+    if (err.statusCode) console.error(`  HTTP ${err.statusCode}: ${err.errorMessages?.join(', ') ?? ''}`)
+    results[testNo] = { proc_id: procId, arrive_id: '', purpose, error: errMsg }
   }
 }
 
