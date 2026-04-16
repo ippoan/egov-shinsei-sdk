@@ -390,16 +390,13 @@ export async function buildWithdrawZip(
   mainXml = mainXml.split('999000000000000001').join('999000000000000009')
   // フィールド填入
   mainXml = fillXmlTags(mainXml, {
-    受付行政機関ID: '100' + procId.substring(0, 3),
-    手続ID: procId,
+    手続ID: '9990000000000003',
     手続名称: procName,
     初回受付番号: arriveId,
     申請種別: '取下げ依頼',
-    氏名: 'テスト　太郎', 氏名フリガナ: 'テスト　タロウ',
-    郵便番号: '1000014', 住所: '東京都千代田区永田町１丁目７番１号',
-    住所フリガナ: 'トウキョウトチヨダクナガタチョウ',
-    電話番号: '03-1234-5678', 電子メールアドレス: 'test@example.com',
   })
+  // 取下げ依頼時は添付書類属性情報を設定しない
+  mainXml = mainXml.replace(/<添付書類属性情報>[\s\S]*?<\/添付書類属性情報>/g, '')
   // 申請書属性情報（取下げ依頼用: 様式ID=003, 名称=取下げ依頼XML）
   if (!mainXml.includes('<申請書属性情報>')) {
     mainXml = mainXml.replace('</構成情報>',
