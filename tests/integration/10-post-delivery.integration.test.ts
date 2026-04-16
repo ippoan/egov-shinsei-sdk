@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { EgovClient } from '../../src/client'
 import { getConfig } from './helpers/env'
-import { saveState, loadState, hasCollectedData } from './helpers/test-context'
+import { saveState, loadState } from './helpers/test-context'
 import { record } from './helpers/result-recorder'
 import { buildUnsignedZip } from './helpers/test-data-builder'
 
 let client: EgovClient
-const hasData = hasCollectedData()
 
 beforeAll(() => {
   const cfg = getConfig()
@@ -65,10 +64,10 @@ describe('電子送達', () => {
     })
   })
 
-  it.skipIf(!hasData)('29-1 電子送達一覧取得', async () => {
+  it('29-1 電子送達一覧取得', async () => {
     const start = Date.now()
     const res = await client.listPostDeliveries({
-      date_from: today,
+      date_from: '2020-11-24',
       date_to: today,
       limit: 10,
       offset: 0,
