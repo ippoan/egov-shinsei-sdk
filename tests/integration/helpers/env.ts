@@ -1,5 +1,6 @@
 import { config } from 'dotenv'
 import { resolve } from 'path'
+import { createCaptureFetch } from './evidence-collector'
 
 config({ path: resolve(import.meta.dirname, '../../../.env') })
 
@@ -17,5 +18,9 @@ export function getConfig() {
     )
   }
 
-  return { apiBase, authBase, clientId, clientSecret, accessToken }
+  // エビデンスキャプチャ用 fetch ラッパー
+  const captureFetch = createCaptureFetch(globalThis.fetch)
+
+  return { apiBase, authBase, clientId, clientSecret, accessToken, fetch: captureFetch }
 }
+

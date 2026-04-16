@@ -204,6 +204,7 @@ export async function buildApplicationZip(
   attachments?: Array<{ name: string; fileName: string; content: Buffer }>,
   applyType?: string,
   skipSign?: boolean,
+  initialArriveId?: string,
 ): Promise<{ zipBase64: string; zipBuffer: Buffer }> {
   const pfx = getPfx()
   const configFiles = procResult.configuration_file_name
@@ -218,7 +219,7 @@ export async function buildApplicationZip(
   // Main kousei.xml
   const mainPath = `${procId}/${configFiles[0]}`
   let mainXml = await zip.file(mainPath)!.async('string')
-  mainXml = fillXmlTags(mainXml, {
+  const kouseiTags: Record<string, string> = {
     受付行政機関ID: '100' + procId.substring(0, 3),
     手続ID: procId,
     手続名称: name,
@@ -228,7 +229,11 @@ export async function buildApplicationZip(
     住所フリガナ: 'トウキョウトチヨダクナガタチョウ',
     電話番号: '03-1234-5678', 電子メールアドレス: 'test@example.com',
     法人名: 'テスト株式会社',
-  })
+  }
+  if (initialArriveId) {
+    kouseiTags['初回受付番号'] = initialArriveId
+  }
+  mainXml = fillXmlTags(mainXml, kouseiTags)
 
   // 提出先情報（必要な手続のみ）
   const PROCS_WITH_DESTINATION = new Set([

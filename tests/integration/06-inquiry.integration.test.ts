@@ -13,6 +13,7 @@ beforeAll(() => {
     authBase: cfg.authBase,
     clientId: cfg.clientId,
     clientSecret: cfg.clientSecret,
+    fetch: cfg.fetch,
   })
   client.setAccessToken(cfg.accessToken)
 })

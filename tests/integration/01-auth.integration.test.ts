@@ -6,6 +6,7 @@ import { record } from './helpers/result-recorder'
 
 let client: EgovClient
 let accessToken: string
+let refreshToken: string
 
 beforeAll(() => {
   const cfg = getConfig()
@@ -14,8 +15,10 @@ beforeAll(() => {
     authBase: cfg.authBase,
     clientId: cfg.clientId,
     clientSecret: cfg.clientSecret,
+    fetch: cfg.fetch,
   })
   accessToken = cfg.accessToken
+  refreshToken = process.env.EGOV_REFRESH_TOKEN ?? ''
   client.setAccessToken(accessToken)
   saveState('accessToken', accessToken)
 })
@@ -26,7 +29,6 @@ describe('認証・認可', () => {
   })
 
   it('02-1 アクセストークン取得', async () => {
-    // token は .env から取得済み → 金融機関一覧 API で疎通確認（認証付き API）
     const start = Date.now()
     const res = await client.listPaymentBanks()
     expect(res).toBeDefined()
@@ -38,20 +40,31 @@ describe('認証・認可', () => {
   })
 
   it('03-1 アクセストークン再取得 (refreshToken)', async () => {
-    // refreshToken は nuxt-egov 側で管理。ここでは token の有効性確認をもって代替
+    if (!refreshToken) {
+      record('03-1', 'アクセストークン再取得', 'skip', { error: 'no EGOV_REFRESH_TOKEN' })
+      return
+    }
+
     const start = Date.now()
-    const res = await client.listPaymentBanks()
-    expect(res).toBeDefined()
+    const res = await client.refreshToken(refreshToken)
+    expect(res.access_token).toBeTruthy()
+    expect(res.refresh_token).toBeTruthy()
+
+    // 新しいトークンで以降のテストを実行
+    accessToken = res.access_token
+    refreshToken = res.refresh_token
+    client.setAccessToken(accessToken)
+    saveState('accessToken', accessToken)
+    saveState('refreshToken', refreshToken)
+
     record('03-1', 'アクセストークン再取得', 'pass', {
       httpStatus: 200,
-      response: 'token valid (API call succeeded)',
+      response: 'new token obtained via refresh',
       durationMs: Date.now() - start,
     })
   })
 
   it('04-1 アクセストークン検証 (access_token)', async () => {
-    // NOTE: SDK の introspectToken は /token に送信するバグがある
-    // ここでは直接 /token/introspect を呼ぶ
     const start = Date.now()
     const cfg = getConfig()
     const credentials = btoa(`${cfg.clientId}:${cfg.clientSecret}`)
@@ -75,7 +88,11 @@ describe('認証・認可', () => {
   })
 
   it('04-2 アクセストークン検証 (refresh_token)', async () => {
-    // refresh_token の introspect
+    if (!refreshToken) {
+      record('04-2', 'アクセストークン検証', 'skip', { error: 'no refresh_token' })
+      return
+    }
+
     const start = Date.now()
     const cfg = getConfig()
     const credentials = btoa(`${cfg.clientId}:${cfg.clientSecret}`)
@@ -85,7 +102,10 @@ describe('認証・認可', () => {
         'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({ token: accessToken }).toString(),
+      body: new URLSearchParams({
+        token: refreshToken,
+        token_type_hint: 'refresh_token',
+      }).toString(),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
