@@ -49,12 +49,15 @@ describe('認証・認可', () => {
   it('02-1 アクセストークン取得', async () => {
     // セッションが有効か確認: refreshToken を試行
     // 前回の 25-1 logout で revoke されていたら即エラー
+    // セッション有効性確認: refreshToken を試行
+    // 前回の 25-1 logout で revoke 済みなら即エラー → CDP でトークン再取得が必要
     if (refreshToken) {
       try {
         await doRefresh()
       } catch {
         throw new Error(
-          'refresh_token のセッションが無効です。ブラウザで再ログインして .env のトークンを更新してください。'
+          'refresh_token のセッションが無効です (前回の logout で revoke 済み)。'
+          + ' CDP でブラウザから新しいトークンを取得して .env を更新してください。'
         )
       }
     }
