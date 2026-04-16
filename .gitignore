@@ -3,3 +3,4 @@ dist/
 coverage/
 spec
 .DS_Store
+.env

@@ -1,0 +1,46 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_prepared_data_tests:
+        description: 'Skip tests requiring e-Gov prepared data'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+
+      - name: Write .env
+        run: |
+          cat <<EOF > .env
+          NUXT_PUBLIC_EGOV_CLIENT_ID=${{ secrets.EGOV_CLIENT_ID }}
+          NUXT_EGOV_CLIENT_SECRET=${{ secrets.EGOV_CLIENT_SECRET }}
+          NUXT_PUBLIC_EGOV_AUTH_BASE=${{ secrets.EGOV_AUTH_BASE }}
+          NUXT_PUBLIC_EGOV_API_BASE=${{ secrets.EGOV_API_BASE }}
+          EGOV_ACCESS_TOKEN=${{ secrets.EGOV_ACCESS_TOKEN }}
+          EOF
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          EGOV_PREPARED_DATA: ${{ inputs.skip_prepared_data_tests && '' || secrets.EGOV_PREPARED_DATA }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-results
+          path: |
+            coverage/integration-results.json
+            coverage/egov-test-report.json
