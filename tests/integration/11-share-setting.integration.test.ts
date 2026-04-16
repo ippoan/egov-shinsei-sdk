@@ -5,6 +5,10 @@ import { record } from './helpers/result-recorder'
 
 let client: EgovClient
 
+// 検証用 gBizID（stg.gbiz-id.go.jp）が必要。e-Gov に取得申請中。
+// 仕様書: 32-1/33-1/34-1 はそれぞれ異なるアカウントで実施が必要
+const hasGbizId = !!process.env.EGOV_GBIZID_ACCOUNT
+
 beforeAll(() => {
   const cfg = getConfig()
   client = new EgovClient({
@@ -16,11 +20,10 @@ beforeAll(() => {
   client.setAccessToken(cfg.accessToken)
 })
 
-// テスト用 gBizID（情報共有設定のテスト用）
-const TEST_GBIZ_ID = 'test-share@example.com'
+const TEST_GBIZ_ID = process.env.EGOV_GBIZID_ACCOUNT ?? 'test-share@example.com'
 
 describe('アカウント間情報共有', () => {
-  it('32-1 情報共有設定', async () => {
+  it.skipIf(!hasGbizId)('32-1 情報共有設定', async () => {
     const start = Date.now()
     try {
       const res = await client.createShareSetting({
@@ -44,7 +47,7 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it('33-1 情報共有更新', async () => {
+  it.skipIf(!hasGbizId)('33-1 情報共有更新', async () => {
     const start = Date.now()
     try {
       const res = await client.updateShareSetting({
@@ -68,7 +71,7 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it('34-1 情報共有解除', async () => {
+  it.skipIf(!hasGbizId)('34-1 情報共有解除', async () => {
     const start = Date.now()
     try {
       const res = await client.deleteShareSetting({
@@ -90,7 +93,7 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it('35-1 情報共有確認', async () => {
+  it.skipIf(!hasGbizId)('35-1 情報共有確認', async () => {
     const start = Date.now()
     try {
       const res = await client.confirmShareSetting({
@@ -113,7 +116,7 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it('36-1 情報共有一覧取得', async () => {
+  it.skipIf(!hasGbizId)('36-1 情報共有一覧取得', async () => {
     const start = Date.now()
     const res = await client.listShareSettings()
     expect(res).toBeDefined()
