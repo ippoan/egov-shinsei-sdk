@@ -44,5 +44,10 @@
     "tsup": "^8",
     "typescript": "^5",
     "vitest": "^3"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "linkedom": "^0.18.12",
+    "node-forge": "^1.4.0"
   }
 }
