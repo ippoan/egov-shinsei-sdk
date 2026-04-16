@@ -8,6 +8,18 @@ let client: EgovClient
 let accessToken: string
 let refreshToken: string
 
+/** refreshToken API を呼んでトークンペアを更新する */
+async function doRefresh() {
+  const res = await client.refreshToken(refreshToken)
+  expect(res.access_token).toBeTruthy()
+  expect(res.refresh_token).toBeTruthy()
+  accessToken = res.access_token
+  refreshToken = res.refresh_token
+  client.setAccessToken(accessToken)
+  saveState('accessToken', accessToken)
+  saveState('refreshToken', refreshToken)
+}
+
 beforeAll(() => {
   const cfg = getConfig()
   client = new EgovClient({
@@ -35,6 +47,18 @@ describe('認証・認可', () => {
   })
 
   it('02-1 アクセストークン取得', async () => {
+    // セッションが有効か確認: refreshToken を試行
+    // 前回の 25-1 logout で revoke されていたら即エラー
+    if (refreshToken) {
+      try {
+        await doRefresh()
+      } catch {
+        throw new Error(
+          'refresh_token のセッションが無効です。ブラウザで再ログインして .env のトークンを更新してください。'
+        )
+      }
+    }
+
     const start = Date.now()
     const res = await client.listPaymentBanks()
     expect(res).toBeDefined()
@@ -52,16 +76,8 @@ describe('認証・認可', () => {
     }
 
     const start = Date.now()
-    const res = await client.refreshToken(refreshToken)
-    expect(res.access_token).toBeTruthy()
-    expect(res.refresh_token).toBeTruthy()
-
-    // 新しいトークンで以降のテストを実行
-    accessToken = res.access_token
-    refreshToken = res.refresh_token
-    client.setAccessToken(accessToken)
-    saveState('accessToken', accessToken)
-    saveState('refreshToken', refreshToken)
+    // 02-1 で refresh 済みなので新しい refreshToken で再度 refresh
+    await doRefresh()
 
     record('03-1', 'アクセストークン再取得', 'pass', {
       httpStatus: 200,
