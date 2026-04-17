@@ -258,32 +258,23 @@ export async function buildApplicationZip(
     mainXml = mainXml.replace('</構成情報>', block + '\n\t\t\t\t</構成情報>')
   }
 
-  // 個別署名形式: 添付書類属性情報
+  // 個別署名形式: 構成管理情報の添付書類属性情報に全ファイルを便宜上の添付ファイルとして列挙
+  // configFiles 順: [main, SignAttach(様式ID1), WriteAppli(様式ID9)]
   if (configFiles.length >= 3 && fi0) {
     let ab = ''
     ab += `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>${fi0.form_name}</添付書類名称><添付書類ファイル名称>${fi0.apply_file_name}</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
-    ab += `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>申請書作成構成情報</添付書類名称><添付書類ファイル名称>${configFiles[1]}</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
-    ab += `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>添付書類署名構成情報</添付書類名称><添付書類ファイル名称>${configFiles[2]}</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
+    ab += `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>申請書作成構成情報</添付書類名称><添付書類ファイル名称>${configFiles[2]}</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
+    ab += `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>添付書類署名構成情報</添付書類名称><添付書類ファイル名称>${configFiles[1]}</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
     ab += `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>添付書類署名ファイル１</添付書類名称><添付書類ファイル名称>dummy.txt</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
     mainXml = mainXml.replace('</管理情報>', '</管理情報>' + ab)
   }
   zip.file(mainPath, mainXml)
 
-  // WriteAppli
+  // configFiles[1] = SignAttach (様式ID 1, 申請種別=添付書類署名)
+  // configFiles[2] = WriteAppli (様式ID 9, 申請種別=申請書作成)
   if (configFiles.length >= 3) {
-    const waPath = `${procId}/${configFiles[1]}`
-    let waXml = await zip.file(waPath)!.async('string')
-    waXml = waXml.split('999000000000000001').join('999000000000000009')
-    waXml = fillXmlTags(waXml, {
-      受付行政機関ID: '100' + procId.substring(0, 3),
-      手続ID: procId, 手続名称: name, 申請種別: '申請書作成',
-    })
-    zip.file(waPath, waXml)
-
-    // SignAttach
-    const saPath = `${procId}/${configFiles[2]}`
+    const saPath = `${procId}/${configFiles[1]}`
     let saXml = await zip.file(saPath)!.async('string')
-    saXml = saXml.split('999000000000000009').join('999000000000000001')
     saXml = fillXmlTags(saXml, {
       受付行政機関ID: '100' + procId.substring(0, 3),
       手続ID: procId, 手続名称: name, 申請種別: '添付書類署名',
@@ -291,6 +282,15 @@ export async function buildApplicationZip(
     const saAttach = `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>添付書類署名ファイル１</添付書類名称><添付書類ファイル名称>dummy.txt</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
     saXml = saXml.replace('</管理情報>', '</管理情報>' + saAttach)
     zip.file(saPath, saXml)
+
+    const waPath = `${procId}/${configFiles[2]}`
+    let waXml = await zip.file(waPath)!.async('string')
+    waXml = fillXmlTags(waXml, {
+      受付行政機関ID: '100' + procId.substring(0, 3),
+      手続ID: procId, 手続名称: name, 申請種別: '申請書作成',
+    })
+    zip.file(waPath, waXml)
+
     zip.file(`${procId}/dummy.txt`, 'test')
   }
 
@@ -332,15 +332,17 @@ export async function buildApplicationZip(
       zip.file(mainPath, signedMain)
     }
     if (configFiles.length >= 3) {
-      const waPath = `${procId}/${configFiles[1]}`
-      let waXml = await zip.file(waPath)!.async('string')
-      waXml = signConfig(waXml, fi0.apply_file_name, applyContent, pfx)
-      zip.file(waPath, waXml)
-
-      const saPath = `${procId}/${configFiles[2]}`
+      // SignAttach: dummy.txt 署名
+      const saPath = `${procId}/${configFiles[1]}`
       let saXml = await zip.file(saPath)!.async('string')
       saXml = signConfig(saXml, 'dummy.txt', 'test', pfx)
       zip.file(saPath, saXml)
+
+      // WriteAppli: 申請書 署名
+      const waPath = `${procId}/${configFiles[2]}`
+      let waXml = await zip.file(waPath)!.async('string')
+      waXml = signConfig(waXml, fi0.apply_file_name, applyContent, pfx)
+      zip.file(waPath, waXml)
     }
   }
 
