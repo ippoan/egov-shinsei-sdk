@@ -4,3 +4,5 @@ coverage/
 spec
 .DS_Store
 .env
+nuxt-egov
+.vscode
