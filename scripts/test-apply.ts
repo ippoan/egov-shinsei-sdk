@@ -85,35 +85,31 @@ if (configFiles.length >= 3 && fi0) {
 }
 zip.file(mainPath, mainXml)
 
-// --- 3. WriteAppli ---
+// --- 3. SignAttach (configFiles[1], 様式ID 1) ---
 if (configFiles.length >= 3) {
-  const waPath = `${PROC_ID}/${configFiles[1]}`
-  let waXml = await zip.file(waPath)!.async('string')
-  // WriteAppli: 様式ID 001→009 にスワップ（001は構成管理情報用で不正になる）
-  waXml = waXml.split('999000000000000001').join('999000000000000009')
-  for (const [tag, value] of Object.entries({ 受付行政機関ID: '100' + PROC_ID.substring(0, 3), 手続ID: PROC_ID, 手続名称: PROC_NAME, 申請種別: '申請書作成' })) {
-    waXml = waXml.replace(new RegExp(`<${tag}/>`, 'g'), `<${tag}>${value}</${tag}>`)
-    waXml = waXml.replace(new RegExp(`<${tag}></${tag}>`, 'g'), `<${tag}>${value}</${tag}>`)
-  }
-  // WriteAppli: 申請書属性情報は入れない（e-Govが"申請書送信"扱いで指定不可）
-  zip.file(waPath, waXml)
-  console.log('[WriteAppli] OK（様式ID 001→009）')
-
-  // --- 4. SignAttach ---
-  const saPath = `${PROC_ID}/${configFiles[2]}`
+  const saPath = `${PROC_ID}/${configFiles[1]}`
   let saXml = await zip.file(saPath)!.async('string')
-  // SignAttach: 様式ID 009→001 にスワップ（サーバーが009を拒否、001を要求）
-  saXml = saXml.split('999000000000000009').join('999000000000000001')
   for (const [tag, value] of Object.entries({ 受付行政機関ID: '100' + PROC_ID.substring(0, 3), 手続ID: PROC_ID, 手続名称: PROC_NAME, 申請種別: '添付書類署名' })) {
     saXml = saXml.replace(new RegExp(`<${tag}/>`, 'g'), `<${tag}>${value}</${tag}>`)
     saXml = saXml.replace(new RegExp(`<${tag}></${tag}>`, 'g'), `<${tag}>${value}</${tag}>`)
   }
-  // SignAttach: 添付書類属性情報 — form_name + apply_file_name
-  const saAttach = `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>${fi0.form_name}</添付書類名称><添付書類ファイル名称>${fi0.apply_file_name}</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
+  const saAttach = `<添付書類属性情報><添付種別>添付</添付種別><添付書類名称>添付書類署名ファイル１</添付書類名称><添付書類ファイル名称>dummy.txt</添付書類ファイル名称><提出情報>1</提出情報></添付書類属性情報>`
   saXml = saXml.replace('</管理情報>', '</管理情報>' + saAttach)
   zip.file(saPath, saXml)
   zip.file(`${PROC_ID}/dummy.txt`, 'test')
   console.log('[SignAttach] OK')
+
+  // --- 4. WriteAppli (configFiles[2], 様式ID 9) ---
+  const waPath = `${PROC_ID}/${configFiles[2]}`
+  let waXml = await zip.file(waPath)!.async('string')
+  for (const [tag, value] of Object.entries({ 受付行政機関ID: '100' + PROC_ID.substring(0, 3), 手続ID: PROC_ID, 手続名称: PROC_NAME, 申請種別: '申請書作成' })) {
+    waXml = waXml.replace(new RegExp(`<${tag}/>`, 'g'), `<${tag}>${value}</${tag}>`)
+    waXml = waXml.replace(new RegExp(`<${tag}></${tag}>`, 'g'), `<${tag}>${value}</${tag}>`)
+  }
+  // NOTE: spec (shinseisyodata p.2-20/図2-7) では 申請書属性情報 は設定必須だが、
+  //       server は「"申請書送信"の場合指定できません」で拒否するCatch-22。
+  zip.file(waPath, waXml)
+  console.log('[WriteAppli] OK')
 }
 
 // --- 5. 署名 ---
@@ -131,20 +127,20 @@ if (configFiles.length < 3) {
   console.log('[Sign] Main skipped（個別署名形式は構成管理XMLに署名なし）')
 }
 
-// WriteAppli — 申請書ファイルを Reference に含むが申請書属性情報は XML に入れない
 if (configFiles.length >= 3) {
-  const waPath = `${PROC_ID}/${configFiles[1]}`
+  // SignAttach: dummy.txt を Reference に
+  const saPath = `${PROC_ID}/${configFiles[1]}`
+  let saXml = await zip.file(saPath)!.async('string')
+  saXml = signConfig(saXml, 'dummy.txt', 'test', pfx)
+  zip.file(saPath, saXml)
+  console.log('[Sign] SignAttach OK')
+
+  // WriteAppli: 申請書ファイルを Reference に
+  const waPath = `${PROC_ID}/${configFiles[2]}`
   let waXml = await zip.file(waPath)!.async('string')
   waXml = signConfig(waXml, fi0.apply_file_name, applyContent, pfx)
   zip.file(waPath, waXml)
-  console.log('[Sign] WriteAppli OK (申請書Reference有、属性情報なし)')
-
-  // SignAttach — 申請書ファイルを署名対象にする
-  const saPath = `${PROC_ID}/${configFiles[2]}`
-  let saXml = await zip.file(saPath)!.async('string')
-  saXml = signConfig(saXml, fi0.apply_file_name, applyContent, pfx)
-  zip.file(saPath, saXml)
-  console.log('[Sign] SignAttach OK')
+  console.log('[Sign] WriteAppli OK')
 }
 
 // --- 6. Summary ---

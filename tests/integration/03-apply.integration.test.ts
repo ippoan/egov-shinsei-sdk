@@ -74,6 +74,42 @@ describe('申請書作成 — 申請データ送信', () => {
     })
   })
 
+  it.skip('IND-1 申請データ送信 (個別署名形式) — Catch-22 ブロック中', async () => {
+    // 個別署名形式の Apply API は spec と server 実装に乖離あり (Catch-22):
+    //   - spec (shinseisyodata p.2-20, 図2-7): WriteAppli に 申請書属性情報 は必須
+    //   - server: 申請書属性情報 ありで "構成管理情報の申請書属性情報は申請書送信の場合指定できません" で拒否
+    //   - 申請書属性情報 なしで "添付必須のファイル(form_name) が添付されていません" で拒否
+    // 打開には e-Gov 問い合わせ回答 or デスクトップクライアントの送信 XML キャプチャが必要。
+    // 詳細: memory `project_individual_sign_blocker.md`
+    const start = Date.now()
+    const INDIVIDUAL_PROC_ID = '950A101220029000'
+    const procRes = await client.getProcedure(INDIVIDUAL_PROC_ID)
+    expect(procRes.results.configuration_file_name.length).toBeGreaterThanOrEqual(3)
+
+    const { zipBase64 } = await buildApplicationZip(procRes.results as any, INDIVIDUAL_PROC_ID)
+
+    try {
+      const res = await client.submitApplication({
+        proc_id: INDIVIDUAL_PROC_ID,
+        send_file: { file_name: `${INDIVIDUAL_PROC_ID}.zip`, file_data: zipBase64 },
+      })
+      expect(res.results.arrive_id).toBeTruthy()
+      saveState('arriveId_ind_1', res.results.arrive_id)
+      record('IND-1', '申請データ送信（個別署名形式）', 'pass', {
+        httpStatus: 200,
+        response: `arrive_id=${res.results.arrive_id}`,
+        durationMs: Date.now() - start,
+      })
+    } catch (e: any) {
+      record('IND-1', '申請データ送信（個別署名形式）', 'fail', {
+        httpStatus: e.statusCode,
+        error: e.message,
+        durationMs: Date.now() - start,
+      })
+      throw e
+    }
+  })
+
   it('08-1 申請データbulk送信 (エラーなし)', async () => {
     const start = Date.now()
     const procResult = getProcResult()
