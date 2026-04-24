@@ -34,4 +34,16 @@ describe('buildAuthorizationUrl', () => {
     const parsed = new URL(url);
     expect(parsed.searchParams.get('scope')).toBe('openid');
   });
+
+  it('idpHint is set as kc_idp_hint when provided', () => {
+    const url = buildAuthorizationUrl({ ...baseParams, idpHint: 'gbiz' });
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('kc_idp_hint')).toBe('gbiz');
+  });
+
+  it('kc_idp_hint is absent when idpHint not provided', () => {
+    const url = buildAuthorizationUrl(baseParams);
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('kc_idp_hint')).toBeNull();
+  });
 });

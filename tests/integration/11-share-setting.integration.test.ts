@@ -5,9 +5,15 @@ import { record } from './helpers/result-recorder'
 
 let client: EgovClient
 
-// 検証用 gBizID（stg.gbiz-id.go.jp）が必要。e-Gov に取得申請中。
-// 仕様書: 32-1/33-1/34-1 はそれぞれ異なるアカウントで実施が必要
-const hasGbizId = !!process.env.EGOV_GBIZID_ACCOUNT
+// 検証用 gBizID（stg.gbiz-id.go.jp）でログインして取得したトークンが必要。
+// 32/33/34/35 は相手の gBizID アカウントが別途必要 (EGOV_GBIZID_TARGET_ACCOUNT)。
+// 36 は自分の一覧取得のみのため gBizID トークンがあれば pass 可能。
+const cfg0 = (() => {
+  try { return getConfig() } catch { return null }
+})()
+const hasGbizAuth = !!cfg0?.gbizAccessToken
+const hasGbizTarget = hasGbizAuth && !!cfg0?.gbizTargetAccount
+const TEST_TARGET_GBIZ_ID = cfg0?.gbizTargetAccount ?? 'test-share@example.com'
 
 beforeAll(() => {
   const cfg = getConfig()
@@ -18,17 +24,16 @@ beforeAll(() => {
     clientSecret: cfg.clientSecret,
     fetch: cfg.fetch,
   })
-  client.setAccessToken(cfg.accessToken)
+  // gBizID でログイン済みのトークンがあれば優先 (情報共有 API は gBizID 必須)
+  client.setAccessToken(cfg.gbizAccessToken ?? cfg.accessToken)
 })
 
-const TEST_GBIZ_ID = process.env.EGOV_GBIZID_ACCOUNT ?? 'test-share@example.com'
-
 describe('アカウント間情報共有', () => {
-  it.skipIf(!hasGbizId)('32-1 情報共有設定', async () => {
+  it.skipIf(!hasGbizTarget)('32-1 情報共有設定', async () => {
     const start = Date.now()
     try {
       const res = await client.createShareSetting({
-        gbiz_id: TEST_GBIZ_ID,
+        gbiz_id: TEST_TARGET_GBIZ_ID,
         official_doc_permission: 'READ',
         post_doc_permission: 'READ',
       })
@@ -48,11 +53,11 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it.skipIf(!hasGbizId)('33-1 情報共有更新', async () => {
+  it.skipIf(!hasGbizTarget)('33-1 情報共有更新', async () => {
     const start = Date.now()
     try {
       const res = await client.updateShareSetting({
-        gbiz_id: TEST_GBIZ_ID,
+        gbiz_id: TEST_TARGET_GBIZ_ID,
         official_doc_permission: 'DOWNLOAD',
         post_doc_permission: 'DOWNLOAD',
       })
@@ -72,11 +77,11 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it.skipIf(!hasGbizId)('34-1 情報共有解除', async () => {
+  it.skipIf(!hasGbizTarget)('34-1 情報共有解除', async () => {
     const start = Date.now()
     try {
       const res = await client.deleteShareSetting({
-        gbiz_id: TEST_GBIZ_ID,
+        gbiz_id: TEST_TARGET_GBIZ_ID,
       })
       expect(res).toBeDefined()
 
@@ -94,11 +99,11 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it.skipIf(!hasGbizId)('35-1 情報共有確認', async () => {
+  it.skipIf(!hasGbizTarget)('35-1 情報共有確認', async () => {
     const start = Date.now()
     try {
       const res = await client.confirmShareSetting({
-        gbiz_id: TEST_GBIZ_ID,
+        gbiz_id: TEST_TARGET_GBIZ_ID,
         share_acceptance: 'ACCEPT',
       })
       expect(res).toBeDefined()
@@ -117,7 +122,7 @@ describe('アカウント間情報共有', () => {
     }
   })
 
-  it.skipIf(!hasGbizId)('36-1 情報共有一覧取得', async () => {
+  it.skipIf(!hasGbizAuth)('36-1 情報共有一覧取得', async () => {
     const start = Date.now()
     const res = await client.listShareSettings()
     expect(res).toBeDefined()
