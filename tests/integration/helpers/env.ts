@@ -10,6 +10,10 @@ export function getConfig() {
   const clientId = process.env.NUXT_PUBLIC_EGOV_CLIENT_ID
   const clientSecret = process.env.NUXT_EGOV_CLIENT_SECRET
   const accessToken = process.env.EGOV_ACCESS_TOKEN
+  // GビズID: 情報共有 API (32-36) は gBizID でログインしたトークンが必要
+  const gbizAccessToken = process.env.EGOV_GBIZID_ACCESS_TOKEN
+  const gbizAccount = process.env.EGOV_GBIZID_ACCOUNT
+  const gbizTargetAccount = process.env.EGOV_GBIZID_TARGET_ACCOUNT
 
   if (!apiBase || !authBase || !clientId || !clientSecret || !accessToken) {
     throw new Error(
@@ -21,6 +25,10 @@ export function getConfig() {
   // エビデンスキャプチャ用 fetch ラッパー
   const captureFetch = createCaptureFetch(globalThis.fetch)
 
-  return { apiBase, authBase, clientId, clientSecret, accessToken, fetch: captureFetch }
+  return {
+    apiBase, authBase, clientId, clientSecret, accessToken,
+    gbizAccessToken, gbizAccount, gbizTargetAccount,
+    fetch: captureFetch,
+  }
 }
 

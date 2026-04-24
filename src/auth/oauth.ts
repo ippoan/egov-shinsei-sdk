@@ -15,6 +15,8 @@ export interface AuthorizationUrlParams {
   codeChallenge: string;
   /** スコープ (デフォルト: 'openid offline_access') */
   scope?: string;
+  /** IdP ヒント (Keycloak `kc_idp_hint`)。GBiz ID でログインする場合など、IdP 選択をスキップしたい時に指定 */
+  idpHint?: string;
 }
 
 /**
@@ -30,5 +32,8 @@ export function buildAuthorizationUrl(params: AuthorizationUrlParams): string {
   url.searchParams.set('state', params.state);
   url.searchParams.set('code_challenge', params.codeChallenge);
   url.searchParams.set('code_challenge_method', 'S256');
+  if (params.idpHint) {
+    url.searchParams.set('kc_idp_hint', params.idpHint);
+  }
   return url.toString();
 }
