@@ -11,6 +11,12 @@ permissions:
   contents: write
   pull-requests: write
   packages: write
+  # frontend-ci.yml の nested `secret-verify` job が WIF OIDC token を mint
+  # するために id-token: write を要求する。`gcp_secret_verify_*` input を
+  # 渡していなくても reusable parse 時の caller permissions check が走るため、
+  # declare していないと workflow 全体が startup_failure になる
+  # (ci-workflows CLAUDE.md "Option A" 参照)。
+  id-token: write
 
 jobs:
   ci:
