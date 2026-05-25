@@ -39,14 +39,21 @@ SDK 実装時の主な参照:
 | `integration-test.yml` | push (main), pull_request, workflow_dispatch | 試験 API 直叩きの統合テスト 33 件 |
 | `tag-release.yml` | workflow_dispatch | semver tag 採番 |
 
-integration-test の secrets は全て GitHub Actions secrets に直接設定 (将来的
-には secrets-inventory 経由で GCP Secret Manager 集約予定だが現状未対応):
+integration-test の secrets は GitHub Actions secrets に直接設定:
 
+**必須**:
 - `EGOV_CLIENT_ID` / `EGOV_CLIENT_SECRET` — 試験ソフトウェア ID / API キー
-- `EGOV_AUTH_BASE` / `EGOV_API_BASE` — 試験エンドポイント URL
-- `EGOV_ACCESS_TOKEN` — 試験アカウントの OAuth access token
+- `EGOV_REFRESH_TOKEN` — 試験アカウントの OAuth refresh_token。CI job 開始時に
+  `grant_type=refresh_token` で access_token を都度発行する (短命な access_token
+  を secret に固定で持たない設計)
+
+**任意** (該当 test の skip 制御):
 - `EGOV_GBIZID_ACCESS_TOKEN` / `EGOV_GBIZID_ACCOUNT` / `EGOV_GBIZID_TARGET_ACCOUNT` — 情報共有 API (32-36) 用、検証用 GBiz ID
 - `EGOV_PREPARED_DATA` — 事前準備データの到達番号 JSON (09-21 用)
+
+**ハードコード** (公開情報なので workflow `env:` に直書き):
+- `EGOV_AUTH_BASE` = `https://account2.sbx.e-gov.go.jp/auth`
+- `EGOV_API_BASE` = `https://api2.sbx.e-gov.go.jp/shinsei/v2`
 
 workflow_dispatch の `skip_prepared_data_tests=true` 指定時のみ
 `EGOV_PREPARED_DATA` を空にして prepared-data 系を skip する。
