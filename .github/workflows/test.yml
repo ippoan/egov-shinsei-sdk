@@ -1,34 +1,28 @@
 name: CI
 
+# Node.js SDK 向け CI。typecheck + test を走らせる。
+# frontend-ci.yml ではなく lib-ci.yml を使う:
+#   - egov-shinsei-sdk は npm package で wrangler / Cloudflare deploy を
+#     持たない (frontend-ci.yml 経由だと secret-verify が wrangler.toml
+#     を探して失敗する)
+#   - publish は分離した publish.yml が v* tag push で走らせる
+
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
 
 permissions:
   contents: write
   pull-requests: write
-  packages: write
-  # frontend-ci.yml の nested `secret-verify` job が WIF OIDC token を mint
-  # するために id-token: write を要求する。`gcp_secret_verify_*` input を
-  # 渡していなくても reusable parse 時の caller permissions check が走るため、
-  # declare していないと workflow 全体が startup_failure になる
-  # (ci-workflows CLAUDE.md "Option A" 参照)。
-  id-token: write
+  packages: read
 
 jobs:
   ci:
-    uses: ippoan/ci-workflows/.github/workflows/frontend-ci.yml@main
+    uses: ippoan/ci-workflows/.github/workflows/lib-ci.yml@main
     with:
-      project_type: 'worker'
-      has_tests: true
-      has_deploy: false
-      has_staging_deploy: false
-      typecheck_command: 'npx tsc --noEmit --skipLibCheck'
-      test_command: 'npx vitest run --coverage --reporter=default --reporter=json --outputFile.json=coverage/test-results.json'
-      npm_scope: '@ippoan'
-      npm_publish_directory: '.'
-      npm_publish_name: 'egov-shinsei-sdk'
+      node_version: '22'
+      # eslint config も lint script も無いので無効化
+      run_lint: 'false'
     secrets: inherit
