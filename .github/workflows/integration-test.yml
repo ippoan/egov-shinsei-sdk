@@ -1,15 +1,38 @@
 name: Integration Tests
 
+# 試験用 e-Gov API (試験手続 ID: TID_202604130039) を直接叩く統合テスト。
+# **CI 自動実行はしない** (PR/push トリガーは付けない)。理由:
+#   - 実 API 依存で発火条件が user 操作 (refresh_token 期限切れ等) に
+#     左右されると CI が flakey になる
+#   - 試験 API でも token rotate のたびに secret 更新が必要で運用負担が高い
+#   - 単体 (mock) test (`test.yml` 経由の vitest + msw) が unit 動作の
+#     検証を担うため、CI に必要なのはそちら
+#
+# 手動で回したい時は workflow_dispatch から起動する。認証フロー:
+#   - 試験 API base / auth base URL は公開情報 (NUXT_PUBLIC_ プレフィックス
+#     の通り client-side でも露出する設計) なのでハードコード
+#   - access_token は短命 (typically 1h) なので secret に固定値で持たず、
+#     job 開始時に EGOV_REFRESH_TOKEN を使って refresh_token grant で
+#     その都度発行する
 on:
   workflow_dispatch:
     inputs:
       skip_prepared_data_tests:
         description: 'Skip tests requiring e-Gov prepared data'
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 試験環境エンドポイント (公開情報、e-Gov Developer Portal で公開済み)
+  EGOV_AUTH_BASE: https://account2.sbx.e-gov.go.jp/auth
+  EGOV_API_BASE: https://api2.sbx.e-gov.go.jp/shinsei/v2
 
 jobs:
   integration:
@@ -22,20 +45,56 @@ jobs:
           node-version: '22'
       - run: npm ci
 
+      - name: Refresh access token
+        id: refresh
+        env:
+          # secret 名は Nuxt 利用時の .env キー (NUXT_PUBLIC_* / NUXT_*) と
+          # 揃える。Nuxt アプリの .env をそのまま GitHub Actions secret に
+          # 登録できるようにするため。サーバー側専用の REFRESH_TOKEN は
+          # NUXT_ プレフィックス無し。
+          CLIENT_ID: ${{ secrets.NUXT_PUBLIC_EGOV_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.NUXT_EGOV_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.EGOV_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$REFRESH_TOKEN" ]; then
+            echo "::error::EGOV_REFRESH_TOKEN secret is not set"
+            exit 1
+          fi
+          RESP=$(curl -fsS -X POST "$EGOV_AUTH_BASE/token" \
+            -u "$CLIENT_ID:$CLIENT_SECRET" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=refresh_token" \
+            --data-urlencode "refresh_token=$REFRESH_TOKEN")
+          ACCESS_TOKEN=$(echo "$RESP" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(j.access_token||"")')
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "::error::failed to extract access_token from token response"
+            exit 1
+          fi
+          # mask in logs
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
+
       - name: Write .env
+        env:
+          ACCESS_TOKEN: ${{ steps.refresh.outputs.access_token }}
         run: |
           cat <<EOF > .env
-          NUXT_PUBLIC_EGOV_CLIENT_ID=${{ secrets.EGOV_CLIENT_ID }}
-          NUXT_EGOV_CLIENT_SECRET=${{ secrets.EGOV_CLIENT_SECRET }}
-          NUXT_PUBLIC_EGOV_AUTH_BASE=${{ secrets.EGOV_AUTH_BASE }}
-          NUXT_PUBLIC_EGOV_API_BASE=${{ secrets.EGOV_API_BASE }}
-          EGOV_ACCESS_TOKEN=${{ secrets.EGOV_ACCESS_TOKEN }}
+          NUXT_PUBLIC_EGOV_CLIENT_ID=${{ secrets.NUXT_PUBLIC_EGOV_CLIENT_ID }}
+          NUXT_EGOV_CLIENT_SECRET=${{ secrets.NUXT_EGOV_CLIENT_SECRET }}
+          NUXT_PUBLIC_EGOV_AUTH_BASE=$EGOV_AUTH_BASE
+          NUXT_PUBLIC_EGOV_API_BASE=$EGOV_API_BASE
+          EGOV_ACCESS_TOKEN=$ACCESS_TOKEN
+          EGOV_GBIZID_ACCESS_TOKEN=${{ secrets.EGOV_GBIZID_ACCESS_TOKEN }}
+          EGOV_GBIZID_ACCOUNT=${{ secrets.EGOV_GBIZID_ACCOUNT }}
+          EGOV_GBIZID_TARGET_ACCOUNT=${{ secrets.EGOV_GBIZID_TARGET_ACCOUNT }}
           EOF
 
       - name: Run integration tests
         run: npm run test:integration
         env:
-          EGOV_PREPARED_DATA: ${{ inputs.skip_prepared_data_tests && '' || secrets.EGOV_PREPARED_DATA }}
+          # workflow_dispatch で skip=true が指定された時のみ空にする。
+          # PR/push の自動実行は全 test 実行 (試験 API 前提)。
+          EGOV_PREPARED_DATA: ${{ (github.event_name == 'workflow_dispatch' && inputs.skip_prepared_data_tests) && '' || secrets.EGOV_PREPARED_DATA }}
 
       - uses: actions/upload-artifact@v4
         if: always()

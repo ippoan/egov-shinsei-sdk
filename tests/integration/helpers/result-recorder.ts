@@ -55,25 +55,41 @@ export function flush(): void {
     ? JSON.parse(readFileSync(RESULTS_PATH, 'utf-8'))
     : []
 
-  const spec = JSON.parse(readFileSync(SPEC_PATH, 'utf-8')) as Array<{
-    test_no: string
-    api_name: string
-    confirmation: string
-    result: string
-  }>
+  // spec/ は gitignore されており CI 上には存在しないため optional。
+  // 無い場合は results をそのまま report 化 (ローカル `npm run package-evidence`
+  // で再合成可能)。
+  const spec = existsSync(SPEC_PATH)
+    ? JSON.parse(readFileSync(SPEC_PATH, 'utf-8')) as Array<{
+        test_no: string
+        api_name: string
+        confirmation: string
+        result: string
+      }>
+    : null
 
-  const report = spec.map((item) => {
-    const r = results.find((r) => r.test_no === item.test_no)
-    return {
-      ...item,
-      result: r?.status ?? 'not_run',
-      実施日時: r?.timestamp ?? '',
-      http_status: r?.http_status,
-      response_summary: r?.response_summary,
-      error: r?.error,
-      duration_ms: r?.duration_ms,
-    }
-  })
+  const report = spec
+    ? spec.map((item) => {
+        const r = results.find((r) => r.test_no === item.test_no)
+        return {
+          ...item,
+          result: r?.status ?? 'not_run',
+          実施日時: r?.timestamp ?? '',
+          http_status: r?.http_status,
+          response_summary: r?.response_summary,
+          error: r?.error,
+          duration_ms: r?.duration_ms,
+        }
+      })
+    : results.map((r) => ({
+        test_no: r.test_no,
+        api_name: r.api_name,
+        result: r.status,
+        実施日時: r.timestamp,
+        http_status: r.http_status,
+        response_summary: r.response_summary,
+        error: r.error,
+        duration_ms: r.duration_ms,
+      }))
 
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true })
   writeFileSync(OUTPUT_PATH, JSON.stringify(report, null, 2))

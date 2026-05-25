@@ -28,6 +28,43 @@ SDK 実装時の主な参照:
 - 32-36 情報共有テスト: 検証用GビズID必須 (未取得時はskip)
 - 09-21: 到達番号収集待ち
 
+## CI / テスト方針
+
+**CI で走らせるのは unit test (msw mock) のみ**。実 e-Gov API 叩きは
+`workflow_dispatch` での手動起動 (= 開発者が必要な時だけローカル相当で
+発火する) に限定。
+
+| workflow | trigger | 用途 |
+|---|---|---|
+| `test.yml` | push (main), pull_request | lib-ci.yml@main: typecheck + test (vitest + msw mock) |
+| `publish.yml` | tags `v*` | lib-publish.yml@main: GitHub Packages へ publish |
+| `integration-test.yml` | `workflow_dispatch` のみ | 試験 e-Gov API 直叩きの統合テスト 33 件 |
+| `tag-release.yml` | `workflow_dispatch` | semver tag 採番 |
+
+integration test を CI 自動実行から外した理由:
+- 実 API 依存 + token rotation で CI が flakey になる
+- 試験 API でも refresh_token 期限切れのたびに secret 更新が要る運用負担
+- unit test (msw mock) が単体動作の検証を担うため CI で必要なのはそちら
+
+### integration-test.yml 手動実行時に必要な secrets
+
+**必須** (Nuxt 利用時の `.env` キーと揃える命名):
+- `NUXT_PUBLIC_EGOV_CLIENT_ID` — 試験ソフトウェア ID
+- `NUXT_EGOV_CLIENT_SECRET` — 試験 API キー
+- `EGOV_REFRESH_TOKEN` — 試験アカウントの refresh_token。job 開始時に
+  `grant_type=refresh_token` で access_token を都度発行
+
+**任意** (該当 test の skip 制御):
+- `EGOV_GBIZID_ACCESS_TOKEN` / `EGOV_GBIZID_ACCOUNT` / `EGOV_GBIZID_TARGET_ACCOUNT`
+- `EGOV_PREPARED_DATA`
+
+**ハードコード** (公開情報なので workflow `env:` に直書き):
+- `EGOV_AUTH_BASE` = `https://account2.sbx.e-gov.go.jp/auth`
+- `EGOV_API_BASE` = `https://api2.sbx.e-gov.go.jp/shinsei/v2`
+
+workflow_dispatch の `skip_prepared_data_tests=true` 指定時のみ
+`EGOV_PREPARED_DATA` を空にして prepared-data 系を skip する。
+
 ## 公開
 
 GitHub Packages: `@ippoan/egov-shinsei-sdk`

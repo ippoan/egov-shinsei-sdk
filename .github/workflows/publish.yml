@@ -1,0 +1,20 @@
+name: publish
+
+# v* tag push で GitHub Packages (@ippoan/egov-shinsei-sdk) に publish。
+# tag は `tag-release.yml` (workflow_dispatch) が作成する想定。
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    uses: ippoan/ci-workflows/.github/workflows/lib-publish.yml@main
+    with:
+      node_version: '22'
+    secrets:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
