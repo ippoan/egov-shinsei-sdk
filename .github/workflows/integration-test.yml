@@ -48,8 +48,12 @@ jobs:
       - name: Refresh access token
         id: refresh
         env:
-          CLIENT_ID: ${{ secrets.EGOV_CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.EGOV_CLIENT_SECRET }}
+          # secret 名は Nuxt 利用時の .env キー (NUXT_PUBLIC_* / NUXT_*) と
+          # 揃える。Nuxt アプリの .env をそのまま GitHub Actions secret に
+          # 登録できるようにするため。サーバー側専用の REFRESH_TOKEN は
+          # NUXT_ プレフィックス無し。
+          CLIENT_ID: ${{ secrets.NUXT_PUBLIC_EGOV_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.NUXT_EGOV_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.EGOV_REFRESH_TOKEN }}
         run: |
           if [ -z "$REFRESH_TOKEN" ]; then
@@ -75,8 +79,8 @@ jobs:
           ACCESS_TOKEN: ${{ steps.refresh.outputs.access_token }}
         run: |
           cat <<EOF > .env
-          NUXT_PUBLIC_EGOV_CLIENT_ID=${{ secrets.EGOV_CLIENT_ID }}
-          NUXT_EGOV_CLIENT_SECRET=${{ secrets.EGOV_CLIENT_SECRET }}
+          NUXT_PUBLIC_EGOV_CLIENT_ID=${{ secrets.NUXT_PUBLIC_EGOV_CLIENT_ID }}
+          NUXT_EGOV_CLIENT_SECRET=${{ secrets.NUXT_EGOV_CLIENT_SECRET }}
           NUXT_PUBLIC_EGOV_AUTH_BASE=$EGOV_AUTH_BASE
           NUXT_PUBLIC_EGOV_API_BASE=$EGOV_API_BASE
           EGOV_ACCESS_TOKEN=$ACCESS_TOKEN

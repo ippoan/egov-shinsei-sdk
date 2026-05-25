@@ -41,11 +41,12 @@ SDK 実装時の主な参照:
 
 integration-test の secrets は GitHub Actions secrets に直接設定:
 
-**必須**:
-- `EGOV_CLIENT_ID` / `EGOV_CLIENT_SECRET` — 試験ソフトウェア ID / API キー
-- `EGOV_REFRESH_TOKEN` — 試験アカウントの OAuth refresh_token。CI job 開始時に
-  `grant_type=refresh_token` で access_token を都度発行する (短命な access_token
-  を secret に固定で持たない設計)
+**必須** (Nuxt 利用時の `.env` キーと揃える命名):
+- `NUXT_PUBLIC_EGOV_CLIENT_ID` — 試験ソフトウェア ID (`NUXT_PUBLIC_` は client-side 露出 OK の Nuxt 慣例)
+- `NUXT_EGOV_CLIENT_SECRET` — 試験 API キー (server-side 専用、`NUXT_` のみで非 PUBLIC)
+- `EGOV_REFRESH_TOKEN` — 試験アカウントの OAuth refresh_token。server-side 専用なので
+  NUXT_ プレフィックス無し。CI job 開始時に `grant_type=refresh_token` で
+  access_token を都度発行する (短命な access_token を secret に固定で持たない設計)
 
 **任意** (該当 test の skip 制御):
 - `EGOV_GBIZID_ACCESS_TOKEN` / `EGOV_GBIZID_ACCOUNT` / `EGOV_GBIZID_TARGET_ACCOUNT` — 情報共有 API (32-36) 用、検証用 GBiz ID
