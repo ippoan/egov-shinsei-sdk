@@ -28,6 +28,29 @@ SDK 実装時の主な参照:
 - 32-36 情報共有テスト: 検証用GビズID必須 (未取得時はskip)
 - 09-21: 到達番号収集待ち
 
+## CI / 環境構成 (staging=prod 運用)
+
+**staging 環境を持たず、CI から直接「試験 e-Gov API」を叩く 1 系統のみ**。
+試験手続 ID (`TID_202604130039`) なので課金・到達番号消費の懸念は無し。
+
+| workflow | trigger | 用途 |
+|---|---|---|
+| `test.yml` | push (main), tags `v*`, pull_request | unit test + typecheck + (tag 時) GitHub Packages publish |
+| `integration-test.yml` | push (main), pull_request, workflow_dispatch | 試験 API 直叩きの統合テスト 33 件 |
+| `tag-release.yml` | workflow_dispatch | semver tag 採番 |
+
+integration-test の secrets は全て GitHub Actions secrets に直接設定 (将来的
+には secrets-inventory 経由で GCP Secret Manager 集約予定だが現状未対応):
+
+- `EGOV_CLIENT_ID` / `EGOV_CLIENT_SECRET` — 試験ソフトウェア ID / API キー
+- `EGOV_AUTH_BASE` / `EGOV_API_BASE` — 試験エンドポイント URL
+- `EGOV_ACCESS_TOKEN` — 試験アカウントの OAuth access token
+- `EGOV_GBIZID_ACCESS_TOKEN` / `EGOV_GBIZID_ACCOUNT` / `EGOV_GBIZID_TARGET_ACCOUNT` — 情報共有 API (32-36) 用、検証用 GBiz ID
+- `EGOV_PREPARED_DATA` — 事前準備データの到達番号 JSON (09-21 用)
+
+workflow_dispatch の `skip_prepared_data_tests=true` 指定時のみ
+`EGOV_PREPARED_DATA` を空にして prepared-data 系を skip する。
+
 ## 公開
 
 GitHub Packages: `@ippoan/egov-shinsei-sdk`

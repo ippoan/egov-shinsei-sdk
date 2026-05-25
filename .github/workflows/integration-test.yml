@@ -1,15 +1,26 @@
 name: Integration Tests
 
+# 試験用 e-Gov API (試験手続 ID: TID_202604130039) を直接叩く統合テスト。
+# 本リポジトリは「staging=prod」運用 (= staging 環境を持たず、CI から直接
+# 試験 API を叩く 1 系統のみ)。試験 API なので課金・到達番号消費の懸念は無し。
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       skip_prepared_data_tests:
         description: 'Skip tests requiring e-Gov prepared data'
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   integration:
@@ -30,12 +41,17 @@ jobs:
           NUXT_PUBLIC_EGOV_AUTH_BASE=${{ secrets.EGOV_AUTH_BASE }}
           NUXT_PUBLIC_EGOV_API_BASE=${{ secrets.EGOV_API_BASE }}
           EGOV_ACCESS_TOKEN=${{ secrets.EGOV_ACCESS_TOKEN }}
+          EGOV_GBIZID_ACCESS_TOKEN=${{ secrets.EGOV_GBIZID_ACCESS_TOKEN }}
+          EGOV_GBIZID_ACCOUNT=${{ secrets.EGOV_GBIZID_ACCOUNT }}
+          EGOV_GBIZID_TARGET_ACCOUNT=${{ secrets.EGOV_GBIZID_TARGET_ACCOUNT }}
           EOF
 
       - name: Run integration tests
         run: npm run test:integration
         env:
-          EGOV_PREPARED_DATA: ${{ inputs.skip_prepared_data_tests && '' || secrets.EGOV_PREPARED_DATA }}
+          # workflow_dispatch で skip=true が指定された時のみ空にする。
+          # PR/push の自動実行は全 test 実行 (試験 API 前提)。
+          EGOV_PREPARED_DATA: ${{ (github.event_name == 'workflow_dispatch' && inputs.skip_prepared_data_tests) && '' || secrets.EGOV_PREPARED_DATA }}
 
       - uses: actions/upload-artifact@v4
         if: always()
