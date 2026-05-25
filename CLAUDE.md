@@ -28,29 +28,35 @@ SDK 実装時の主な参照:
 - 32-36 情報共有テスト: 検証用GビズID必須 (未取得時はskip)
 - 09-21: 到達番号収集待ち
 
-## CI / 環境構成 (staging=prod 運用)
+## CI / テスト方針
 
-**staging 環境を持たず、CI から直接「試験 e-Gov API」を叩く 1 系統のみ**。
-試験手続 ID (`TID_202604130039`) なので課金・到達番号消費の懸念は無し。
+**CI で走らせるのは unit test (msw mock) のみ**。実 e-Gov API 叩きは
+`workflow_dispatch` での手動起動 (= 開発者が必要な時だけローカル相当で
+発火する) に限定。
 
 | workflow | trigger | 用途 |
 |---|---|---|
-| `test.yml` | push (main), tags `v*`, pull_request | unit test + typecheck + (tag 時) GitHub Packages publish |
-| `integration-test.yml` | push (main), pull_request, workflow_dispatch | 試験 API 直叩きの統合テスト 33 件 |
-| `tag-release.yml` | workflow_dispatch | semver tag 採番 |
+| `test.yml` | push (main), pull_request | lib-ci.yml@main: typecheck + test (vitest + msw mock) |
+| `publish.yml` | tags `v*` | lib-publish.yml@main: GitHub Packages へ publish |
+| `integration-test.yml` | `workflow_dispatch` のみ | 試験 e-Gov API 直叩きの統合テスト 33 件 |
+| `tag-release.yml` | `workflow_dispatch` | semver tag 採番 |
 
-integration-test の secrets は GitHub Actions secrets に直接設定:
+integration test を CI 自動実行から外した理由:
+- 実 API 依存 + token rotation で CI が flakey になる
+- 試験 API でも refresh_token 期限切れのたびに secret 更新が要る運用負担
+- unit test (msw mock) が単体動作の検証を担うため CI で必要なのはそちら
+
+### integration-test.yml 手動実行時に必要な secrets
 
 **必須** (Nuxt 利用時の `.env` キーと揃える命名):
-- `NUXT_PUBLIC_EGOV_CLIENT_ID` — 試験ソフトウェア ID (`NUXT_PUBLIC_` は client-side 露出 OK の Nuxt 慣例)
-- `NUXT_EGOV_CLIENT_SECRET` — 試験 API キー (server-side 専用、`NUXT_` のみで非 PUBLIC)
-- `EGOV_REFRESH_TOKEN` — 試験アカウントの OAuth refresh_token。server-side 専用なので
-  NUXT_ プレフィックス無し。CI job 開始時に `grant_type=refresh_token` で
-  access_token を都度発行する (短命な access_token を secret に固定で持たない設計)
+- `NUXT_PUBLIC_EGOV_CLIENT_ID` — 試験ソフトウェア ID
+- `NUXT_EGOV_CLIENT_SECRET` — 試験 API キー
+- `EGOV_REFRESH_TOKEN` — 試験アカウントの refresh_token。job 開始時に
+  `grant_type=refresh_token` で access_token を都度発行
 
 **任意** (該当 test の skip 制御):
-- `EGOV_GBIZID_ACCESS_TOKEN` / `EGOV_GBIZID_ACCOUNT` / `EGOV_GBIZID_TARGET_ACCOUNT` — 情報共有 API (32-36) 用、検証用 GBiz ID
-- `EGOV_PREPARED_DATA` — 事前準備データの到達番号 JSON (09-21 用)
+- `EGOV_GBIZID_ACCESS_TOKEN` / `EGOV_GBIZID_ACCOUNT` / `EGOV_GBIZID_TARGET_ACCOUNT`
+- `EGOV_PREPARED_DATA`
 
 **ハードコード** (公開情報なので workflow `env:` に直書き):
 - `EGOV_AUTH_BASE` = `https://account2.sbx.e-gov.go.jp/auth`
