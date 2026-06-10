@@ -38,6 +38,11 @@ export function canonicalizeById(xmlString: string, id: string): string {
     throw new Error(`Element with ID="${id}" not found`)
   }
   const tagName = openMatch[1]
+  if (!tagName) {
+    // 正規表現上 group 1 は必ずあるが、consumer (vue-tsc strict) の
+    // noUncheckedIndexedAccess を満たすため明示ガード
+    throw new Error(`Element with ID="${id}" not found`)
+  }
   const startIdx = xmlString.indexOf(openMatch[0])
 
   // 対応する閉じタグを検索（ネストを考慮）
