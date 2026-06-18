@@ -135,39 +135,7 @@ export interface ApplicationInfo {
   value: string;
 }
 
-/** エラーレスポンス (API共通) */
-export interface ApiErrorResponse {
-  /** エラー内容 */
-  title: string;
-  /** エラー詳細 */
-  detail?: string;
-  /** APIドキュメントURI */
-  type: string;
-  /** エンドポイントURI */
-  instance: string;
-}
-
-/** エラーレスポンス (エラーレポート付き) */
-export interface ApiErrorResponseWithReport extends ApiErrorResponse {
-  /** エラーレポート一覧 */
-  report_list?: ReportListItem[];
-}
-
-/** エラーレスポンス (取下げエラーレポート付き) */
-export interface ApiErrorResponseWithWithdrawReport extends ApiErrorResponse {
-  /** エラーレポート一覧 */
-  report_list?: ReportListWithdrawItem[];
-}
-
-/** エラーレスポンス (bulk申請エラー) */
-export interface ApiErrorResponseBulk extends ApiErrorResponse {
-  /** エラー件数 */
-  error_count: number;
-  /** エラー内容項目 */
-  error?: ErrorBulkItem[];
-}
-
-/** エラーレポート項目 */
+/** エラーレポート項目 (形式チェック結果 / 申請詳細の report_list 用) */
 export interface ReportListItem {
   /** 様式名 (依らない場合は"-") */
   form_name?: string;
@@ -179,34 +147,6 @@ export interface ReportListItem {
   item?: string;
   /** エラー内容 */
   content?: string;
-}
-
-/** エラーレポート項目 (取下げ用) */
-export interface ReportListWithdrawItem {
-  /** ファイル名 (依らない場合は"-") */
-  file_name?: string;
-  /** 項目名 (依らない場合は"-") */
-  item?: string;
-  /** エラー内容 */
-  content?: string;
-}
-
-/** bulk申請エラー内容項目 */
-export interface ErrorBulkItem {
-  /** エラー申請フォルダ名 */
-  errorFolder?: string;
-  /** エラー申請ファイル名 */
-  errorFile?: string;
-  /** エラー内容 */
-  content?: string;
-}
-
-/** トークンエラーレスポンス (認証系) */
-export interface ErrorToken {
-  /** HTTPステータスに紐づくエラーコード */
-  error: string;
-  /** エラーコードに紐づくエラー詳細 */
-  error_description?: string;
 }
 
 // ============================================================
@@ -241,12 +181,6 @@ export interface ResultsProcedure {
   configuration_file_name: string[];
   /** 様式情報 */
   file_info: FileInfoItem[];
-}
-
-/** GET /procedure/{proc_id} リクエストパラメータ */
-export interface ProcedureRequest {
-  /** 手続識別子 (16桁、半角英数字) */
-  proc_id: string;
 }
 
 /** GET /procedure/{proc_id} レスポンス */
@@ -653,12 +587,6 @@ export interface ResultsApplyDetail {
   applied_account?: string;
 }
 
-/** GET /apply/{arrive_id} リクエストパラメータ */
-export interface ApplyDetailRequest {
-  /** 到達番号 (16-18桁) */
-  arrive_id: string;
-}
-
 /** GET /apply/{arrive_id} レスポンス */
 export interface ApplyDetailResponse {
   /** メタデータ */
@@ -804,12 +732,6 @@ export interface MessageListsResponse {
   _links: LinksList;
 }
 
-/** GET /message/{information_id} リクエストパラメータ */
-export interface MessageDetailRequest {
-  /** お知らせID (1-16桁) */
-  information_id: string;
-}
-
 /** GET /message/{information_id} レスポンス */
 export interface MessageDetailResponse {
   /** メタデータ */
@@ -915,14 +837,6 @@ export interface NoticeListsResponse {
   _links: LinksListNote;
 }
 
-/** GET /notice/{arrive_id}/{notice_sub_id} リクエストパラメータ */
-export interface NoticeDetailRequest {
-  /** 到達番号 (16-18桁) */
-  arrive_id: string;
-  /** 通知通番 (1-999) */
-  notice_sub_id: number;
-}
-
 /** GET /notice/{arrive_id}/{notice_sub_id} レスポンス */
 export interface NoticeDetailResponse {
   /** メタデータ */
@@ -1013,14 +927,6 @@ export interface ResultsOfficialDocumentVerify {
   attached_file_name?: string;
   /** 検証結果 */
   verify_result: VerifyResultItem[];
-}
-
-/** GET /official_document/{arrive_id}/{notice_sub_id} リクエストパラメータ */
-export interface OfficialDocumentRequest {
-  /** 到達番号 (16-18桁) */
-  arrive_id: string;
-  /** 通知通番 (1-999) */
-  notice_sub_id: number;
 }
 
 /** GET /official_document/{arrive_id}/{notice_sub_id} レスポンス */
@@ -1179,12 +1085,6 @@ export interface PaymentListsResponse {
   metadata: MetadataCommon;
   /** 結果データ */
   results: ResultsPaymentLists;
-}
-
-/** GET /payment/{arrive_id} リクエストパラメータ */
-export interface PaymentRequest {
-  /** 到達番号 (16-18桁) */
-  arrive_id: string;
 }
 
 /** GET /payment/{arrive_id} レスポンス */
@@ -1359,12 +1259,6 @@ export interface PostApplyResponse {
   _links: LinksApply;
 }
 
-/** GET /post-apply/{arrive_id} リクエストパラメータ */
-export interface PostApplyDetailRequest {
-  /** 到達番号 (16-18桁) */
-  arrive_id: string;
-}
-
 /** GET /post-apply/{arrive_id} レスポンス */
 export interface PostApplyDetailResponse {
   /** メタデータ */
@@ -1386,12 +1280,6 @@ export interface PostListsResponse {
   results: ResultsPostLists;
   /** 接続URL情報 */
   _links: LinksList;
-}
-
-/** GET /post/{post_id} リクエストパラメータ */
-export interface PostDetailRequest {
-  /** 電子送達識別子 (1-50桁) */
-  post_id: string;
 }
 
 /** GET /post/{post_id} レスポンス */
@@ -1550,50 +1438,6 @@ export interface ShareConfirmationResponse {
 // Auth --- 利用者認証 (OAuth2)
 // ============================================================
 
-/** GET /auth クエリパラメータ (ユーザー認可) */
-export interface AuthRequest {
-  /** ソフトウェアID */
-  client_id: string;
-  /** レスポンス・タイプ (code) */
-  response_type: string;
-  /** スコープ (openid offline_access) */
-  scope: string;
-  /** リダイレクトURL */
-  redirect_uri: string;
-  /** CSRF対策用ランダム値 */
-  state?: string;
-  /** PKCE code_challenge (SHA-256, BASE64URL) */
-  code_challenge?: string;
-  /** code_challengeのハッシュアルゴリズム (S256) */
-  code_challenge_method?: string;
-}
-
-/** ユーザー認可コールバックパラメータ */
-export interface AuthCallbackParams {
-  /** 認可コード */
-  code: string;
-  /** ユーザー認可リクエスト時に指定したstate値 */
-  state?: string;
-  /** セッション状態を表す識別子 */
-  session_state: string;
-}
-
-/** POST /token リクエストボディ (アクセストークン取得/再取得) */
-export interface TokenRequest {
-  /** 取得時: authorization_code / 再取得時: refresh_token */
-  grant_type: string;
-  /** 認可コード (取得時のみ) */
-  code?: string;
-  /** リダイレクトURI (取得時のみ) */
-  redirect_uri?: string;
-  /** PKCE code_verifier (取得時のみ) */
-  code_verifier?: string;
-  /** リフレッシュトークン (再取得時のみ) */
-  refresh_token?: string;
-  /** スコープ */
-  scope?: string;
-}
-
 /** POST /token レスポンス */
 export interface TokenResponse {
   /** アクセストークン */
@@ -1614,14 +1458,6 @@ export interface TokenResponse {
   session_state: string;
   /** スコープ */
   scope: string;
-}
-
-/** POST /token/introspect リクエストボディ (トークン検証) */
-export interface IntrospectRequest {
-  /** アクセストークンまたはリフレッシュトークン */
-  token: string;
-  /** トークン種別ヒント (access_token / refresh_token) */
-  token_type_hint?: string;
 }
 
 /** POST /token/introspect レスポンス */
@@ -1668,10 +1504,4 @@ export interface IntrospectResponse {
   username?: string;
   /** トークンの有効性 */
   active: boolean;
-}
-
-/** POST /logout リクエストボディ */
-export interface LogoutRequest {
-  /** リフレッシュトークン */
-  refresh_token: string;
 }
