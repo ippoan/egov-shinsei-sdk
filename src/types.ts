@@ -33,6 +33,18 @@ export interface ResultSet {
   count: number;
 }
 
+/** ページング一覧系クエリの共通パラメータ (message/notice/post の各 lists で共有) */
+export interface PagedListRequest {
+  /** 取得対象期間開始日 (YYYY-MM-DD) */
+  date_from: string;
+  /** 取得対象期間終了日 (YYYY-MM-DD) */
+  date_to: string;
+  /** 取得件数 (1-50) */
+  limit: number;
+  /** 取得ページ番号 (1-9999) */
+  offset: number;
+}
+
 /** ファイルデータ (ZIP圧縮済み、Base64エンコード) */
 export interface FileData {
   /** ファイル名（拡張子 .zip を含む） */
@@ -778,16 +790,7 @@ export interface ResultsMessage {
 }
 
 /** GET /message/lists クエリパラメータ */
-export interface MessageListsRequest {
-  /** 取得対象期間開始日 (YYYY-MM-DD) */
-  date_from: string;
-  /** 取得対象期間終了日 (YYYY-MM-DD) */
-  date_to: string;
-  /** 取得件数 (1-50) */
-  limit: number;
-  /** 取得ページ番号 (1-9999) */
-  offset: number;
-}
+export interface MessageListsRequest extends PagedListRequest {}
 
 /** GET /message/lists レスポンス */
 export interface MessageListsResponse {
@@ -898,16 +901,7 @@ export interface ResultsNotice {
 }
 
 /** GET /notice/lists クエリパラメータ */
-export interface NoticeListsRequest {
-  /** 取得対象期間開始日 (YYYY-MM-DD) */
-  date_from: string;
-  /** 取得対象期間終了日 (YYYY-MM-DD) */
-  date_to: string;
-  /** 取得件数 (1-50) */
-  limit: number;
-  /** 取得ページ番号 (1-9999) */
-  offset: number;
-}
+export interface NoticeListsRequest extends PagedListRequest {}
 
 /** GET /notice/lists レスポンス */
 export interface NoticeListsResponse {
@@ -1380,16 +1374,7 @@ export interface PostApplyDetailResponse {
 }
 
 /** GET /post/lists クエリパラメータ */
-export interface PostListsRequest {
-  /** 取得対象期間開始日 (YYYY-MM-DD) */
-  date_from: string;
-  /** 取得対象期間終了日 (YYYY-MM-DD) */
-  date_to: string;
-  /** 取得件数 (1-50) */
-  limit: number;
-  /** 取得ページ番号 (1-9999) */
-  offset: number;
-}
+export interface PostListsRequest extends PagedListRequest {}
 
 /** GET /post/lists レスポンス */
 export interface PostListsResponse {

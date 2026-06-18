@@ -40,8 +40,8 @@ export function createSignatureBlock(options: SignatureOptions, secondsOffset = 
 }
 
 /**
- * kousei.xml に署名ブロッ���を挿入する
- * </構成情報> の後に <署名情報> ���挿入
+ * kousei.xml に署名ブロックを挿入する
+ * </構成情報> の後に <署名情報> を挿入
  */
 export function insertSignatureIntoKousei(kouseiXml: string, signatureBlockXml: string): string {
   // 署名情報は </構成情報> と <その他> の間に挿入

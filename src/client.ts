@@ -86,12 +86,13 @@ export class EgovClient {
   }
 
   // ----------------------------------------------------------------
-  // Internal: token endpoint (Basic auth + form-urlencoded)
+  // Internal: auth endpoints (Basic auth + form-urlencoded)
   // ----------------------------------------------------------------
 
-  private async tokenRequest<T>(body: Record<string, string>): Promise<T> {
+  /** authBase 配下のエンドポイントへ Basic 認証 + form-urlencoded で POST する。!ok なら EgovApiError を投げる。 */
+  private async authFormPost(path: string, body: Record<string, string>): Promise<Response> {
     const credentials = btoa(`${this.config.clientId}:${this.config.clientSecret ?? ''}`);
-    const res = await this.fetchFn(`${this.config.authBase}/token`, {
+    const res = await this.fetchFn(`${this.config.authBase}${path}`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -107,6 +108,11 @@ export class EgovClient {
         errorMessages: [errorBody.error_description ?? errorBody.detail ?? res.statusText],
       });
     }
+    return res;
+  }
+
+  private async tokenRequest<T>(body: Record<string, string>): Promise<T> {
+    const res = await this.authFormPost('/token', body);
     return res.json() as Promise<T>;
   }
 
@@ -157,6 +163,38 @@ export class EgovClient {
     return res.json() as Promise<T>;
   }
 
+  /** 申請照会系 (apply/lists, apply/report) の optional クエリを組み立てる */
+  private static applyQuery(p: {
+    send_number?: string;
+    date_from?: string;
+    date_to?: string;
+    limit?: number;
+    offset?: number;
+  }): Record<string, string> {
+    const qs: Record<string, string> = {};
+    if (p.send_number) qs.send_number = p.send_number;
+    if (p.date_from) qs.date_from = p.date_from;
+    if (p.date_to) qs.date_to = p.date_to;
+    if (p.limit !== undefined) qs.limit = String(p.limit);
+    if (p.offset !== undefined) qs.offset = String(p.offset);
+    return qs;
+  }
+
+  /** 通知/送達系の必須ページングパラメータ (date_from/date_to/limit/offset) を組み立てる */
+  private static pagedParams(p: {
+    date_from: string;
+    date_to: string;
+    limit: number;
+    offset: number;
+  }): Record<string, string> {
+    return {
+      date_from: p.date_from,
+      date_to: p.date_to,
+      limit: String(p.limit),
+      offset: String(p.offset),
+    };
+  }
+
   // ================================================================
   // Auth --- 利用者認証
   // ================================================================
@@ -194,23 +232,7 @@ export class EgovClient {
 
   /** ログアウト (セッション無効化) */
   async logout(accessToken: string): Promise<void> {
-    const credentials = btoa(`${this.config.clientId}:${this.config.clientSecret ?? ''}`);
-    const res = await this.fetchFn(`${this.config.authBase}/logout`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ refresh_token: accessToken }).toString(),
-    });
-    if (!res.ok) {
-      const errorBody = await res.json().catch(() => ({}));
-      throw new EgovApiError({
-        statusCode: res.status,
-        resultCode: errorBody.error ?? errorBody.title ?? 'UNKNOWN',
-        errorMessages: [errorBody.error_description ?? errorBody.detail ?? res.statusText],
-      });
-    }
+    await this.authFormPost('/logout', { refresh_token: accessToken });
   }
 
   // ================================================================
@@ -258,13 +280,9 @@ export class EgovClient {
 
   /** 申請案件一覧を取得する */
   async listApplications(params: ApplyListsRequest): Promise<ApplyListsResponse> {
-    const qs: Record<string, string> = {};
-    if (params.send_number) qs.send_number = params.send_number;
-    if (params.date_from) qs.date_from = params.date_from;
-    if (params.date_to) qs.date_to = params.date_to;
-    if (params.limit !== undefined) qs.limit = String(params.limit);
-    if (params.offset !== undefined) qs.offset = String(params.offset);
-    return this.request<ApplyListsResponse>('GET', '/apply/lists', { params: qs });
+    return this.request<ApplyListsResponse>('GET', '/apply/lists', {
+      params: EgovClient.applyQuery(params),
+    });
   }
 
   /** 申請案件の詳細を取得する */
@@ -274,13 +292,9 @@ export class EgovClient {
 
   /** エラーレポートを取得する */
   async getErrorReport(params: ApplyReportRequest): Promise<ApplyReportResponse> {
-    const qs: Record<string, string> = {};
-    if (params.send_number) qs.send_number = params.send_number;
-    if (params.date_from) qs.date_from = params.date_from;
-    if (params.date_to) qs.date_to = params.date_to;
-    if (params.limit !== undefined) qs.limit = String(params.limit);
-    if (params.offset !== undefined) qs.offset = String(params.offset);
-    return this.request<ApplyReportResponse>('GET', '/apply/report', { params: qs });
+    return this.request<ApplyReportResponse>('GET', '/apply/report', {
+      params: EgovClient.applyQuery(params),
+    });
   }
 
   // ================================================================
@@ -290,12 +304,7 @@ export class EgovClient {
   /** 手続に関するご案内一覧を取得する */
   async listMessages(params: MessageListsRequest): Promise<MessageListsResponse> {
     return this.request<MessageListsResponse>('GET', '/message/lists', {
-      params: {
-        date_from: params.date_from,
-        date_to: params.date_to,
-        limit: String(params.limit),
-        offset: String(params.offset),
-      },
+      params: EgovClient.pagedParams(params),
     });
   }
 
@@ -307,12 +316,7 @@ export class EgovClient {
   /** 申請案件に関する通知一覧を取得する */
   async listNotices(params: NoticeListsRequest): Promise<NoticeListsResponse> {
     return this.request<NoticeListsResponse>('GET', '/notice/lists', {
-      params: {
-        date_from: params.date_from,
-        date_to: params.date_to,
-        limit: String(params.limit),
-        offset: String(params.offset),
-      },
+      params: EgovClient.pagedParams(params),
     });
   }
 
@@ -376,12 +380,7 @@ export class EgovClient {
   /** 電子送達一覧を取得する */
   async listPostDeliveries(params: PostListsRequest): Promise<PostListsResponse> {
     return this.request<PostListsResponse>('GET', '/post/lists', {
-      params: {
-        date_from: params.date_from,
-        date_to: params.date_to,
-        limit: String(params.limit),
-        offset: String(params.offset),
-      },
+      params: EgovClient.pagedParams(params),
     });
   }
 

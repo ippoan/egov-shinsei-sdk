@@ -129,7 +129,7 @@ function serializeNode(node: Element, inheritedNs: Map<string, string>): string 
     }
   }
 
-  // 属性が使う���前空間
+  // 属性が使う名前空間
   for (const attr of regularAttrs) {
     if (attr.nsUri && attr.nsUri !== XML_NS) {
       const attrPrefix = attr.name.split(':')[0]!
