@@ -8,8 +8,8 @@ e-Gov 電子申請API v2 TypeScript SDK。
 - `src/types.ts` — 全型定義（openapi.json準拠、自作コード）
 - `src/errors.ts` — `EgovApiError`
 - `src/auth/` — OAuth2 PKCE + URL builder
-- `src/xml/` — XML署名モジュール (C14N XHTML対応)
-- `tests/` — Vitest + msw、ユニット103テスト + 統合テスト
+- `src/xmldsig/` — XML署名モジュール (C14N XHTML対応)
+- `tests/` — Vitest + msw、ユニット106テスト + 統合テスト
 
 ## 仕様書
 
